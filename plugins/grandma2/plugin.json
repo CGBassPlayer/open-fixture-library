@@ -1,0 +1,12 @@
+{
+  "$schema": "../../schemas/plugin.json",
+
+  "name": "Grand MA2",
+  "description": [
+    "<p>MA Lighting produces grandMA2 control boards and therefore also distributes the so-called 'grandMA2 onPC' free-of-charge software.</p>"
+  ],
+  "links": {
+    "MA Fixture Share": "https://fixtureshare.malighting.com/login.php",
+    "Software Download": "https://www.malighting.com/downloads/products/grandMA2/"
+  }
+}

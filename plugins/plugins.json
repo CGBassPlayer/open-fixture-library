@@ -12,6 +12,7 @@
     "dmxcontrol3",
     "dragonframe",
     "ecue",
+    "Grand MA2",
     "millumin",
     "ofl",
     "op-z",
@@ -63,6 +64,10 @@
     "gdtf": {
       "name": "GDTF 1.0",
       "importPluginVersion": "0.2.0"
+    },
+    "grandma2": {
+      "name": "Grand MA2",
+      "exportPluginVersion": "0.1.0"
     },
     "millumin": {
       "name": "Millumin",
