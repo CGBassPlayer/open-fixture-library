@@ -12,7 +12,7 @@
     "dmxcontrol3",
     "dragonframe",
     "ecue",
-    "Grand MA2",
+    "grandma2",
     "millumin",
     "ofl",
     "op-z",
@@ -67,7 +67,8 @@
     },
     "grandma2": {
       "name": "Grand MA2",
-      "exportPluginVersion": "0.1.0"
+      "exportPluginVersion": "0.1.0",
+      "exportTests": []
     },
     "millumin": {
       "name": "Millumin",
