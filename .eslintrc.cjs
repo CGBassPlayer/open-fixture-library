@@ -1,10 +1,10 @@
 const pluginPresets = {
   import: `recommended`,
   jsdoc: `recommended-typescript-flavor`,
-  markdown: `recommended`,
+  markdown: `recommended-legacy`,
   nuxt: `recommended`,
   promise: `recommended`,
-  sonarjs: `recommended`,
+  sonarjs: `recommended-legacy`,
   unicorn: `recommended`,
   vue: `recommended`,
   'vuejs-accessibility': `recommended`,
@@ -48,6 +48,7 @@ const enabledRuleParameters = {
   'no-loop-func': [],
   'no-mixed-operators': [],
   'no-multi-spaces': [],
+  'no-nested-ternary': [],
   'no-new-object': [],
   'no-prototype-builtins': [],
   'no-restricted-imports': [{
@@ -64,11 +65,13 @@ const enabledRuleParameters = {
   'no-trailing-spaces': [],
   'no-unsafe-optional-chaining': [{ 'disallowArithmeticOperators': true }],
   'no-unused-vars': [{ args: `none` }],
+  // 'no-useless-assignment': [], // TODO: enable when migrated to ESLint v9
   'no-var': [],
   'object-curly-spacing': [`always`],
   'object-shorthand': [`always`, { avoidQuotes: true }],
   'prefer-arrow-callback': [],
   'prefer-const': [{ destructuring: `all` }],
+  'prefer-object-spread': [],
   'prefer-rest-params': [],
   'prefer-template': [],
   'quotes': [`backtick`, { allowTemplateLiterals: true }],
@@ -92,7 +95,7 @@ const enabledRuleParameters = {
   'import/no-commonjs': [{ allowConditionalRequire: false }],
   'import/no-dynamic-require': [],
   'import/no-unresolved': [{
-    ignore: [`^chalk$`],
+    ignore: [`^chalk$`, `^@octokit/rest$`],
   }],
   'import/order': [{
     groups: [`builtin`, `external`, `internal`, `parent`, `sibling`],
@@ -182,6 +185,7 @@ const enabledRuleParameters = {
   'vue/component-tags-order': [{
     order: [`template`, `style[scoped]`, `style:not([scoped])`, `script`],
   }],
+  'vue/enforce-style-attribute': [],
   'vue/html-button-has-type': [],
   'vue/html-closing-bracket-newline': [{
     singleline: `never`,
@@ -195,9 +199,6 @@ const enabledRuleParameters = {
   'vue/max-attributes-per-line': [{ singleline: 3 }],
   'vue/next-tick-style': [],
   'vue/no-boolean-default': [`default-false`],
-  'vue/no-deprecated-scope-attribute': [],
-  'vue/no-deprecated-slot-attribute': [],
-  'vue/no-deprecated-slot-scope-attribute': [],
   'vue/no-empty-component-block': [],
   'vue/no-undef-components': [{
     ignorePatterns: [
@@ -207,19 +208,58 @@ const enabledRuleParameters = {
     ],
   }],
   'vue/no-undef-properties': [],
+  'vue/no-unused-emit-declarations': [],
   'vue/no-unused-properties': [{
     groups: [`props`, `data`, `computed`, `methods`, `setup`],
     ignorePublicMembers: true,
   }],
   'vue/no-unused-refs': [],
+  'vue/no-use-v-else-with-v-for': [],
   'vue/no-v-text': [],
   'vue/prefer-prop-type-boolean-first': [],
   'vue/prefer-separate-static-class': [],
   'vue/prefer-true-attribute-shorthand': [],
   'vue/require-direct-export': [],
   'vue/v-for-delimiter-style': [`of`],
+  'vue/v-if-else-key': [],
   'vue/v-on-handler-style': [`inline`],
   'vue/v-slot-style': [`shorthand`],
+
+  // Vue 3 migration
+  'vue/no-deprecated-data-object-declaration': [],
+  // 'vue/no-deprecated-destroyed-lifecycle': [], // impossible to fix in Vue 2 (without Composition API)
+  'vue/no-deprecated-dollar-listeners-api': [],
+  'vue/no-deprecated-dollar-scopedslots-api': [],
+  'vue/no-deprecated-events-api': [],
+  'vue/no-deprecated-filter': [],
+  'vue/no-deprecated-functional-template': [],
+  'vue/no-deprecated-html-element-is': [],
+  'vue/no-deprecated-inline-template': [],
+  'vue/no-deprecated-model-definition': [{
+    allowVue3Compat: true,
+  }],
+  'vue/no-deprecated-props-default-this': [],
+  'vue/no-deprecated-router-link-tag-prop': [],
+  'vue/no-deprecated-scope-attribute': [],
+  'vue/no-deprecated-slot-attribute': [],
+  'vue/no-deprecated-slot-scope-attribute': [],
+  'vue/no-deprecated-v-bind-sync': [],
+  'vue/no-deprecated-v-is': [],
+  'vue/no-deprecated-v-on-native-modifier': [],
+  'vue/no-deprecated-v-on-number-modifiers': [],
+  'vue/no-deprecated-vue-config-keycodes': [],
+  'vue/no-expose-after-await': [],
+  'vue/no-lifecycle-after-await': [],
+  'vue/no-watch-after-await': [],
+  'vue/prefer-import-from-vue': [],
+  'vue/require-explicit-emits': [],
+  'vue/require-slots-as-functions': [],
+  'vue/require-toggle-inside-transition': [],
+  'vue/v-on-event-hyphenation': [],
+
+  // eslint-plugin-vuejs-accessibility
+  'vuejs-accessibility/no-aria-hidden-on-focusable': [],
+  'vuejs-accessibility/no-role-presentation-on-focusable': [],
 
   // already included in presets, but needed here because we reduce severity to `warn`
   'sonarjs/cognitive-complexity': [],
