@@ -1,6 +1,10 @@
-export const version = `0.1.0`; // semantic versioning of export plugin
+import sanitize from 'sanitize-filename';
+import xmlbuilder from "xmlbuilder";
 
-const ma2FixtureFileHeaders = `xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.malighting.de/grandma2/xml/MA http://schemas.malighting.de/grandma2/xml/2.8.123/MA.xsd" xmlns="http://schemas.malighting.de/grandma2/xml/MA" major_vers="3" minor_vers="1" stream_vers="0"`;
+import Fixture from '../../lib/model/Fixture';
+import Mode from '../../lib/model/Mode';
+
+export const version = `0.1.0`; // semantic versioning of export plugin
 
 /**
  * @param {Fixture[]} fixtures An array of Fixture objects, see our fixture model
@@ -11,74 +15,128 @@ const ma2FixtureFileHeaders = `xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmln
  * @returns {Promise<*[]>} All generated files (see file schema above)
  */
 export async function exportFixtures(fixtures, options) {
-  const outfiles = [];
-
-  for (const fixture of fixtures) {
-    for (const mode of fixture.modes) {
-      outfiles.push({
-        mimetype: `application/xml`,
-        name: `${fixture.manufacturer.key.replaceAll(`-`, `_`).toLowerCase()}@${fixture.key.replaceAll(`-`, `_`).toLowerCase()}@${mode.shortName}.xml`,
-        content: `<MA ${ma2FixtureFileHeaders}>
-  <FixtureType name="${fixture.name} mode=${mode.name}">
-    <InfoItems>
-      <Info type="Note" date="${getFormattedDate()}">Generated from OFL MA2 export plugin</Info>
-    </InfoItems>
-    ${generateMetaData(fixture)}
-    <Modules>
-      <Module name="Main Module" class="${mapMaFixtureType(fixture)}" beamtype="None" beamangle="0" beamIntensity="0">
-        <Body>
-          <Size x="" y="" z="" />
-        </Body>
-      </Module>
-    </Modules>
-  </FixtureType>
-</MA>` });
+  const outFiles = await Promise.all(fixtures.map(async fixture => {
+    try {
+      return await getFixtureFiles(fixture, options);
     }
-  }
-
-  return outfiles;
-}
-
-/**
- * Generate xml for the metadata about a fixture.
- * @param fixture
- * @returns {string} raw xml
- */
-function generateMetaData(fixture) {
-  let xml = ``;
-  xml += `<manufacturer>${fixture.manufacturer.name}</manufacturer>\n`;
-  if (fixture.manufacturer.shortName !== undefined) {
-    xml += `<short_manufacturer>fixture.manufacturer.shortName</short_manufacturer>\n`;
-  }
-  if (fixture.shortName !== undefined) {
-    xml += `<shortname>${fixture.shortName}</shortname>\n`;
-  }
-
-  return xml;
-}
-
-/**
- * Figures out what the best type of MA fixture is for the OFL category and the bulb provided
- * @param fixture
- */
-function mapMaFixtureType(fixture) {
-  // `None`, `Mirror`, `Headmover`, `Conventional`, `LED`  // More types exist, but are not worth having here
-  for (const category of fixture.categories) {
-    if (category === `Moving Head`) {
-      return `Headmover`;
+    catch (error) {
+      throw new Error(`Exporting fixture ${fixture.manufacturer.key}/${fixture.key} failed: ${error}`, {
+        cause: error,
+      });
     }
-  }
-  if (fixture.bulb.type !== ``) {
-    return fixture.bulb.type.toUpperCase().includes(`LED`) ? `LED` : `Conventional`;
-  }
-  return `None`;
+  }));
+
+  return outFiles
+}
+
+async function getFixtureFiles(fixture, options) {
+  const modeFiles = await Promise.all(fixture.modes.map(mode => {
+    try {
+      return getFixtureModeFile(fixture, mode, options);
+    } catch (err) {
+      throw new Error(`Exporting fixture ${fixture.manufacturer.key}/${fixture.key}/${mode.name} mode failed: ${error}`, {
+        cause: error,
+      });
+    }
+  }));
+  return modeFiles;
 }
 
 /**
- * Get current datetime returned as a properly formatted string.
- * @returns {string} formatted datetime
+ * @param {Fixture} fixture The fixure to export
+ * @param {Mode} mode fixture mode
+ * @param {object} options Global options
+ * @returns {Promise<object>} The generated fixture file
  */
-function getFormattedDate() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, `0`)}-${String(now.getDate()).padStart(2, `0`)}T${String(now.getHours()).padStart(2, `0`)}:${String(now.getMinutes()).padStart(2, `0`)}:${String(now.getSeconds()).padStart(2, `0`)}`;
+async function getFixtureModeFile(fixture, mode, options) {
+  const xml = xmlbuilder.begin()
+    .declaration('1.0', 'UTF-8')
+    .element({
+      MA: {
+        "@major_vers": "3",
+        "@minor_vers": "2",
+        "@stream_vers": "2",
+        Info: {
+          "@datetime": fixture.meta.lastModifyDate.toISOString().split(".")[0],
+          "@showfile": "Open Fixture Library"
+        },
+        FixtureType: {
+          "@index": "0",
+          "@name": fixture.name,
+          "@mode": mode.name,
+          InfoItems: {
+            Info: "Created from Open Fixture Library GrandMA2 export plugin"
+          },
+          short_name: fixture.hasShortName ? fixture.shortName : fixture.name.slice(0, 8),
+          manufacturer: fixture.manufacturer.name,
+          short_manufacturer: fixture.manufacturer.name,
+          Modules: {
+            "@index": "0",
+            Module: {
+              "@index": "0",
+              "@name": "Module",
+              "@class": "Headmover", // TODO Add logic to figure out class from fixture category
+              "@beam_angle": `${fixture.physical.lensDegreesMax}`,
+              "@beam_intensity": `${fixture.physical.bulbLumens || 10000}`,
+              Body: {
+                Size: { // If physical dimensions are not provide, default to half meter square (default in ma fixture builder)
+                  "@x": `${(fixture.physical.width || 500) / 1000}`,
+                  "@y": `${(fixture.physical.depth || 500) / 1000}`,
+                  "@z": `${(fixture.physical.height || 500) / 1000}`
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+  // getChannelTypes(xml, mode)
+
+  const sanitizedFileName = sanitize(`${fixture.manufacturer.name}@${fixture.name}@${mode.shortName}.xml`).replaceAll(/\s+/g, `-`);
+
+  return await {
+    name: `${sanitizedFileName}`,
+    content: xml.end({
+      pretty: true,
+      indent: '  '
+    }),
+    mimetype: 'application/xml'
+  };
+
+}
+
+/**
+ * @param {Mode} mode the current mode
+ * @returns {object} the list of channels for that fixture in that mode
+ */
+function getChannelTypes(xml, mode) {
+  return mode.channels.reduce((acc, channel, idx) => {
+    return {
+      ...acc,
+      ChannelType: {
+        "@index": `${idx}`,
+        "@attribute": "",
+        "@feature": "",
+        "@preset": "",
+        "@course": "",
+        "@fine": "",
+        "@default": "",
+        ChannelFunction: {
+          "@index": "0",
+          "@from": "",
+          "@to": "",
+          "@min_dmx_24": "",
+          "@max_dmx_24": "",
+          "@physfrom": "",
+          "@physto": "",
+          "@subattribute": "",
+          "@attribute": "",
+          "@feature": "",
+          "@preset": "",
+          // TODO Chanel Sets
+        }
+      }
+    }
+  });
 }
