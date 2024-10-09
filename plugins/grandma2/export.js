@@ -30,9 +30,7 @@ export async function exportFixtures(fixtures, options) {
  * @returns {object} the file that will be downloaded
  */
 function generateFile(fixture, mode, options) {
-  let xml = xmlbuilder.begin()
-    .dec('1.0', 'UTF-8')
-    .ele({
+  const maFixture = {
       MA: {
         "@major_vers": "3",
         "@minor_vers": "2",
@@ -65,15 +63,17 @@ function generateFile(fixture, mode, options) {
                   "@y": `${(fixture.physical.depth || 500) / 1000}`,
                   "@z": `${(fixture.physical.height || 500) / 1000}`
                 }
-              }
+              },
+              ChannelType: getChannelTypes(fixture, mode)
             }
           }
         }
       }
-    });
+    };
 
-  // FIXME Not technically correct yet. Currently adds a new element where it need to add to the existing element
-  getChannelTypes(fixture, mode, xml);
+  let xml = xmlbuilder.begin()
+    .dec('1.0', 'UTF-8')
+    .ele(maFixture);
 
   return {
     name: `${fixture.manufacturer.key}@${fixture.key}@${mode.shortName}.xml`,
@@ -88,36 +88,35 @@ function generateFile(fixture, mode, options) {
 /**
  * @param {Fixture} fixture the current fixture
  * @param {Mode} mode the current mode
- * @param {XMLElement} xml the xml being generated
- * @returns {object} the list of channels for that fixture in that mode
+ * @param {object} maFixture the object being generated into xml
+ * @returns {object[]} the list of channels for that fixture in that mode
  */
-function getChannelTypes(fixture, mode, xml) {
-  const module = xml.ele("FixtureType").ele("Modules").ele("Module");
+function getChannelTypes(fixture, mode) {
+  const channelTypes = [];
   mode.channels.forEach((channel, idx) => {
-    module.ele({
-      ChannelType: {
-        "@index": `${idx}`,
-        "@attribute": `${channel.key.toUpperCase()}`,
+  channelTypes.push({
+      "@index": `${idx}`,
+      "@attribute": `${channel.key.toUpperCase()}`,
+      "@feature": "",
+      "@preset": "",
+      "@course": `${mode.channels.indexOf(channel) + 1}`,
+      "@fine": ``,
+      "@default": "",
+      ChannelFunction: {
+        "@index": "0",
+        "@from": "",
+        "@to": "",
+        "@min_dmx_24": "",
+        "@max_dmx_24": "",
+        "@physfrom": "",
+        "@physto": "",
+        "@subattribute": "",
+        "@attribute": "",
         "@feature": "",
         "@preset": "",
-        "@course": `${mode.channels.indexOf(channel) + 1}`,
-        "@fine": ``,
-        "@default": "",
-        ChannelFunction: {
-          "@index": "0",
-          "@from": "",
-          "@to": "",
-          "@min_dmx_24": "",
-          "@max_dmx_24": "",
-          "@physfrom": "",
-          "@physto": "",
-          "@subattribute": "",
-          "@attribute": "",
-          "@feature": "",
-          "@preset": "",
-          // TODO Chanel Sets
-        }
+        // TODO Chanel Sets
       }
     });
   });
+  return channelTypes;
 }
