@@ -31,7 +31,7 @@ export async function exportFixtures(fixtures, options) {
  */
 function generateFile(fixture, mode, options) {
   let xml = xmlbuilder.begin()
-    .declaration('1.0', 'UTF-8')
+    .dec('1.0', 'UTF-8')
     .ele({
       MA: {
         "@major_vers": "3",
@@ -48,7 +48,7 @@ function generateFile(fixture, mode, options) {
           InfoItems: {
             Info: "Created from Open Fixture Library GrandMA2 export plugin"
           },
-          short_name: fixture.hasShortName ? fixture.shortName : fixture.name.slice(0, 8),
+          short_name: fixture.shortName,
           manufacturer: fixture.manufacturer.name,
           short_manufacturer: fixture.manufacturer.name,
           Modules: {
@@ -71,6 +71,10 @@ function generateFile(fixture, mode, options) {
         }
       }
     });
+
+  getChannelTypes(fixture, mode, xml);
+  // xml.ele("Module").ele(getChannelTypes(mode));
+
   return {
     name: `${fixture.manufacturer.key}@${fixture.key}@${mode.shortName}.xml`,
     content: xml.end({
@@ -79,4 +83,41 @@ function generateFile(fixture, mode, options) {
     }),
     mimetype: `application/xml`,
   }
+}
+
+/**
+ * @param {Fixture} fixture the current fixture
+ * @param {Mode} mode the current mode
+ * @param {XMLElement} xml the xml being generated
+ * @returns {object} the list of channels for that fixture in that mode
+ */
+function getChannelTypes(fixture, mode, xml) {
+  const module = xml.ele("FixtureType").ele("Modules").ele("Module");
+  mode.channels.forEach((channel, idx) => {
+    module.ele({
+      ChannelType: {
+        "@index": `${idx}`,
+        "@attribute": `${channel.key.toUpperCase()}`,
+        "@feature": "",
+        "@preset": "",
+        "@course": `${mode.channels.indexOf(channel) + 1}`,
+        "@fine": ``,
+        "@default": "",
+        ChannelFunction: {
+          "@index": "0",
+          "@from": "",
+          "@to": "",
+          "@min_dmx_24": "",
+          "@max_dmx_24": "",
+          "@physfrom": "",
+          "@physto": "",
+          "@subattribute": "",
+          "@attribute": "",
+          "@feature": "",
+          "@preset": "",
+          // TODO Chanel Sets
+        }
+      }
+    });
+  });
 }
