@@ -72,8 +72,8 @@ function generateFile(fixture, mode, options) {
       }
     });
 
+  // FIXME Not technically correct yet. Currently adds a new element where it need to add to the existing element
   getChannelTypes(fixture, mode, xml);
-  // xml.ele("Module").ele(getChannelTypes(mode));
 
   return {
     name: `${fixture.manufacturer.key}@${fixture.key}@${mode.shortName}.xml`,
