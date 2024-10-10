@@ -1,6 +1,7 @@
 import xmlbuilder from 'xmlbuilder';
 import Fixture from '../../lib/model/Fixture.js';
 import Mode from '../../lib/model/Mode.js';
+import Capability from '../../lib/model/Capability.js';
 
 
 export const version = `0.1.0`;
@@ -93,20 +94,29 @@ function generateFile(fixture, mode, options) {
  */
 function getChannelTypes(fixture, mode) {
   const channelTypes = [];
-  mode.channels.forEach((channel, idx) => {
+  let idx = 0
+  mode.channels.forEach((channel) => {
+    // Fine channels are included in the coarse channel entry so
+    // we need to ignore them.
     if (fixture.fineChannelAliases.indexOf(channel.name) >= 0) {
       return;
     }
-    // const capability = fixture.capabilities.find(o => o.name === channel.name);
+    idx = idx + 1;
+    // const capability = fixture.capabilities.find(o => o. === channel.name);
     const courseChannel = fixture.coarseChannels.find(o => o.key === channel.key) || {};
     const fineChannel = fixture.fineChannels.find(o => o.coarseChannel === courseChannel);
+    const capabilities = courseChannel.capabilities
     if (JSON.stringify(courseChannel) === "{}") {
+      // In theory this shouldn't be able to happen because the JSON schema accounts for 
+      // this and the page would fail to load on the site
       throw new Error(`Channel ${channel.key} could not be found in list of channels`)
     }
 
+    console.log(capabilities[0].angle !== null ? capabilities[0].angle[1].number : null);
+
     channelTypes.push({
       "@index": `${idx}`,
-      "@attribute": `${channel.key.toUpperCase()}`,
+      "@attribute": courseChannel.type.toUpperCase(),
       "@feature": "",
       "@preset": "",
       "@course": `${mode.channels.indexOf(channel) + 1}`,
@@ -114,12 +124,12 @@ function getChannelTypes(fixture, mode) {
       "@default": courseChannel.hasDefaultValue ? courseChannel.defaultValue : null,
       ChannelFunction: {
         "@index": "0",
-        "@from": "",
-        "@to": "",
+        "@from": capabilities[0].angle !== null ? getAngle(capabilities[0].angle[1].number).start : null,
+        "@to": capabilities[0].angle !== null ? getAngle(capabilities[0].angle[1].number).end : null,
         "@min_dmx_24": "0",
         "@max_dmx_24": "16777215",
-        "@physfrom": "",
-        "@physto": "",
+        "@physfrom": capabilities[0].angle !== null ? getAngle(capabilities[0].angle[1].number).start : null,
+        "@physto": capabilities[0].angle !== null ? getAngle(capabilities[0].angle[1].number).end : null,
         "@subattribute": "",
         "@attribute": "",
         "@feature": "",
@@ -129,4 +139,16 @@ function getChannelTypes(fixture, mode) {
     });
   });
   return channelTypes;
+}
+
+/**
+ * 
+ * @param {number} fullAngle 
+ * @returns angles with 0 being in the middle
+ */
+function getAngle(fullAngle) {
+  return {
+    start: -(fullAngle / 2),
+    end: fullAngle / 2
+  }
 }
