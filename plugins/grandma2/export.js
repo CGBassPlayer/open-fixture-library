@@ -106,13 +106,6 @@ function getChannelTypes(fixture, mode) {
     const courseChannel = fixture.coarseChannels.find(o => o.key === channel.key) || {};
     const fineChannel = fixture.fineChannels.find(o => o.coarseChannel === courseChannel);
     const capabilities = courseChannel.capabilities
-    if (JSON.stringify(courseChannel) === "{}") {
-      // In theory this shouldn't be able to happen because the JSON schema accounts for 
-      // this and the page would fail to load on the site
-      throw new Error(`Channel ${channel.key} could not be found in list of channels`)
-    }
-
-    console.log(capabilities[0].angle !== null ? capabilities[0].angle[1].number : null);
 
     channelTypes.push({
       "@index": `${idx}`,
