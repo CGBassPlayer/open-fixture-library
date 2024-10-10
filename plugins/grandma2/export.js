@@ -94,20 +94,30 @@ function generateFile(fixture, mode, options) {
 function getChannelTypes(fixture, mode) {
   const channelTypes = [];
   mode.channels.forEach((channel, idx) => {
-  channelTypes.push({
+    if (fixture.fineChannelAliases.indexOf(channel.name) >= 0) {
+      return;
+    }
+    // const capability = fixture.capabilities.find(o => o.name === channel.name);
+    const courseChannel = fixture.coarseChannels.find(o => o.key === channel.key) || {};
+    const fineChannel = fixture.fineChannels.find(o => o.coarseChannel === courseChannel);
+    if (JSON.stringify(courseChannel) === "{}") {
+      throw new Error(`Channel ${channel.key} could not be found in list of channels`)
+    }
+
+    channelTypes.push({
       "@index": `${idx}`,
       "@attribute": `${channel.key.toUpperCase()}`,
       "@feature": "",
       "@preset": "",
       "@course": `${mode.channels.indexOf(channel) + 1}`,
-      "@fine": ``,
-      "@default": "",
+      "@fine": fineChannel !== undefined ? mode.channels.indexOf(fineChannel) + 1 : null,
+      "@default": courseChannel.hasDefaultValue ? courseChannel.defaultValue : null,
       ChannelFunction: {
         "@index": "0",
         "@from": "",
         "@to": "",
-        "@min_dmx_24": "",
-        "@max_dmx_24": "",
+        "@min_dmx_24": "0",
+        "@max_dmx_24": "16777215",
         "@physfrom": "",
         "@physto": "",
         "@subattribute": "",
