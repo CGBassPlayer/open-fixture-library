@@ -39,7 +39,7 @@ function generateFile(fixture, mode, options) {
       "@minor_vers": "2",
       "@stream_vers": "2",
       Info: {
-        "@datetime": fixture.meta.lastModifyDate.toISOString().split(".")[0],
+        "@datetime": fixture.meta.lastModifyDate.toISOString().split(".")[0], // Date does not use anything beyond seconds
         "@showfile": "Open Fixture Library"
       },
       FixtureType: {
@@ -47,7 +47,7 @@ function generateFile(fixture, mode, options) {
         "@name": fixture.name,
         "@mode": mode.name,
         InfoItems: {
-          Info: "Created from Open Fixture Library GrandMA2 export plugin"
+          Info: `Created from Open Fixture Library GrandMA2 export plugin v${version}`
         },
         short_name: fixture.shortName,
         manufacturer: fixture.manufacturer.name,
