@@ -4,7 +4,7 @@ import Mode from '../../lib/model/Mode.js';
 import Capability from '../../lib/model/Capability.js';
 
 import CHANNEL_TYPE_MAPPINGS from './map.js';
-
+import * as utils from './util.js';
 
 export const version = `0.1.0`;
 
@@ -58,13 +58,13 @@ function generateFile(fixture, mode, options) {
             "@index": "0",
             "@name": "Module",
             "@class": "Headmover", // TODO Add logic to figure out class from fixture category
-            "@beam_angle": `${fixture.physical.lensDegreesMax}`,
-            "@beam_intensity": `${fixture.physical.bulbLumens || 10000}`,
+            "@beam_angle": fixture.physical?.lensDegreesMax || null,
+            "@beam_intensity": fixture.physical?.bulbLumens || 10000,
             Body: {
               Size: { // If physical dimensions are not provide, default to half meter square (default in ma fixture builder)
-                "@x": `${(fixture.physical.width || 500) / 1000}`,
-                "@y": `${(fixture.physical.depth || 500) / 1000}`,
-                "@z": `${(fixture.physical.height || 500) / 1000}`
+                "@x": (fixture.physical?.width || 500) / 1000,
+                "@y": (fixture.physical?.depth || 500) / 1000,
+                "@z": (fixture.physical?.height || 500) / 1000
               }
             },
             ChannelType: getChannelTypes(fixture, mode)
@@ -115,24 +115,25 @@ function getChannelTypes(fixture, mode) {
         mappingKey = courseChannel.type.toUpperCase();
     }
     const channelType = CHANNEL_TYPE_MAPPINGS[mappingKey] || {};
+    const ranges = getToAndFrom(courseChannel);
 
     channelTypes.push({
-      "@index": `${idx - 1}`,
+      "@index": idx - 1,
       "@attribute": channelType.attribute,
       "@feature": channelType.feature,
       "@preset": channelType.preset,
-      "@course": `${mode.channels.indexOf(channel) + 1}`,
-      "@fine": fineChannel !== undefined ? mode.channels.indexOf(fineChannel) + 1 : null,
+      "@course": mode.channels.indexOf(channel) + 1,
+      "@fine": `${fineChannel !== undefined ? mode.channels.indexOf(fineChannel) + 1 : null}`, // TODO fix the check to make fine channels that don't exist be hidden instead of render "0"
       "@default": courseChannel.hasDefaultValue ? courseChannel.defaultValue : null,
+      "@highlight_value": courseChannel.hasHighlightValue ? courseChannel.highlightValue : null,
       ChannelFunction: {
         "@index": "0",
-        // TODO Add check for things other than P/T angles
-        "@from": courseChannel.capabilities[0].angle !== null ? getAngle(courseChannel.capabilities[0].angle[1].number).start : null,
-        "@to": courseChannel.capabilities[0].angle !== null ? getAngle(courseChannel.capabilities[0].angle[1].number).end : null,
-        "@min_dmx_24": "0",
-        "@max_dmx_24": "16777215",
-        "@physfrom": courseChannel.capabilities[0].angle !== null ? getAngle(courseChannel.capabilities[0].angle[1].number).start : null,
-        "@physto": courseChannel.capabilities[0].angle !== null ? getAngle(courseChannel.capabilities[0].angle[1].number).end : null,
+        "@from": ranges.from,
+        "@to": ranges.to,
+        "@min_dmx_24": 0,
+        "@max_dmx_24": ranges.dmxMax24,
+        "@physfrom": ranges.physicalFrom,
+        "@physto": ranges.physicalTo,
         "@subattribute": channelType.subattribute,
         "@attribute": channelType.attribute,
         "@feature": channelType.feature,
@@ -172,13 +173,14 @@ function getChannelSets(capabilities, hasFineChannel) {
       "@from_dmx": capabilities[0].dmxRange.end,
       "@to_dmx": capabilities[0].dmxRange.end
     });
-  } else {
+  }
+  else {
     capabilities.forEach((cap, i) => {
       channelSets.push({
-        "@index": `${i}`,
+        "@index": i,
         "@name": cap.name,
-        "@from_dmx": `${cap.dmxRange.start}`,
-        "@to_dmx": `${cap.dmxRange.end}`
+        "@from_dmx": cap.dmxRange.start,
+        "@to_dmx": cap.dmxRange.end
       });
     });
   }
@@ -187,21 +189,46 @@ function getChannelSets(capabilities, hasFineChannel) {
 }
 
 /**
- * @param {number} fullAngle 
- * @returns angles with 0 being in the middle
+ * @param {Entity[] | null} angle
+ * @returns {object} angles with 0 being in the middle if possible
  */
-function getAngle(fullAngle) {
+function getAngle(angle) {
+  if (angle === null) { // Angles do not exist so they are not applied
+    return {
+      start: null,
+      end: null
+    };
+  }
+  else if (angle[0].number === 0) { // Update it so 0 is in center in the fixtures rangle
+    return {
+      start: Math.floor(angle[1].number / 2) * -1,
+      end: Math.floor(angle[1].number / 2)
+    }
+  }
   return {
-    start: Math.floor(fullAngle / 2) * -1,
-    end: Math.floor(fullAngle / 2)
+    start: angle[0].number,
+    end: angle[1].number
   }
 }
 
-/**
- * Convert a 8 bit hex value (0-255) into a natural value (0-100)
- * @param {number} hex 
- * @returns Natural Value
- */
-function convertToNatural(hex) {
-  return Math.floor((hex / 255) * 100)
+function getToAndFrom(channel) {
+  if (channel.capabilities[0].angle !== null) { // If the channel has actual angle changes
+    const angles = getAngle(channel.capabilities[0].angle);
+    return {
+      from: angles.start,
+      to: angles.end,
+      physicalFrom: angles.start,
+      physicalTo: angles.end,
+      dmxMin24: 0,
+      dmxMax24: 16777215
+    }
+  }
+  return {
+    from: "0",
+    to: channel.capabilities.at(-1).dmxRange.end,
+    physicalFrom: "0",
+    physicalTo: "1",
+    dmxMin24: 0,
+    dmxMax24: utils.toHex(channel.capabilities.at(-1).dmxRange.end)
+  }
 }
