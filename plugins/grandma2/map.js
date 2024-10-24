@@ -16,8 +16,8 @@ const CHANNEL_TYPE_MAPPINGS = {
     subattribute: "SHUTTER"
   },
 
-    // POSITION
-    PAN: {
+  // POSITION
+  PAN: {
     attribute: "PAN",
     feature: "POSITION",
     preset: "POSITION",
@@ -29,7 +29,7 @@ const CHANNEL_TYPE_MAPPINGS = {
     preset: "POSITION",
     subattribute: "TILT"
   },
-  PANTILTSPEED:{
+  PANTILTSPEED: {
     attribute: "POSITIONMSPEED",
     feature: "POSITION",
     preset: "POSITION",

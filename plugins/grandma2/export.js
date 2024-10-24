@@ -104,8 +104,11 @@ function getChannelTypes(fixture, mode) {
       return;
     }
     idx = idx + 1;
+
     const courseChannel = fixture.coarseChannels.find(o => o.key === channel.key) || {};
-    const fineChannel = fixture.fineChannels.find(o => o.coarseChannel === courseChannel);
+    const fineChannel = fixture.fineChannels.find(o => o.coarseChannel === courseChannel && o.resolution === 2);
+    const ultraChannel = fixture.fineChannels.find(o => o.coarseChannel === courseChannel && o.resolution === 3);
+
     let mappingKey;
     switch (courseChannel.type.toUpperCase()) {
       case "SINGLE COLOR":
@@ -123,7 +126,8 @@ function getChannelTypes(fixture, mode) {
       "@feature": channelType.feature,
       "@preset": channelType.preset,
       "@course": mode.channels.indexOf(channel) + 1,
-      "@fine": `${fineChannel !== undefined ? mode.channels.indexOf(fineChannel) + 1 : null}`, // TODO fix the check to make fine channels that don't exist be hidden instead of render "0"
+      "@fine": mode.channels.indexOf(fineChannel) >= 0 ? `${mode.channels.indexOf(fineChannel) + 1}` : null,
+      "@ultra": mode.channels.indexOf(ultraChannel)>= 0 ? `${mode.channels.indexOf(ultraChannel) + 1}` : null,
       "@default": courseChannel.hasDefaultValue ? courseChannel.defaultValue : null,
       "@highlight_value": courseChannel.hasHighlightValue ? courseChannel.highlightValue : null,
       ChannelFunction: {
@@ -188,32 +192,11 @@ function getChannelSets(capabilities, hasFineChannel) {
   return channelSets;
 }
 
-/**
- * @param {Entity[] | null} angle
- * @returns {object} angles with 0 being in the middle if possible
- */
-function getAngle(angle) {
-  if (angle === null) { // Angles do not exist so they are not applied
-    return {
-      start: null,
-      end: null
-    };
-  }
-  else if (angle[0].number === 0) { // Update it so 0 is in center in the fixtures rangle
-    return {
-      start: Math.floor(angle[1].number / 2) * -1,
-      end: Math.floor(angle[1].number / 2)
-    }
-  }
-  return {
-    start: angle[0].number,
-    end: angle[1].number
-  }
-}
+
 
 function getToAndFrom(channel) {
   if (channel.capabilities[0].angle !== null) { // If the channel has actual angle changes
-    const angles = getAngle(channel.capabilities[0].angle);
+    const angles = utils.getAngle(channel.capabilities[0].angle);
     return {
       from: angles.start,
       to: angles.end,
@@ -224,11 +207,11 @@ function getToAndFrom(channel) {
     }
   }
   return {
-    from: "0",
-    to: channel.capabilities.at(-1).dmxRange.end,
+    from: utils.toNatural(channel.capabilities.at(0).dmxRange.start),
+    to: utils.toNatural(channel.capabilities.at(-1).dmxRange.end),
     physicalFrom: "0",
     physicalTo: "1",
     dmxMin24: 0,
-    dmxMax24: utils.toHex(channel.capabilities.at(-1).dmxRange.end)
+    dmxMax24: 16777215
   }
 }
